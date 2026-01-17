@@ -10,6 +10,17 @@ st.set_page_config(page_title="算牌計算器", layout="wide")
 CARDS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
 FACE_CARDS = {"10","J","Q","K"}
 
+# 讓按鈕更像鍵盤：矮一點、字大一點
+st.markdown("""
+<style>
+.stButton > button {
+    padding: 0.35rem 0.2rem !important;
+    height: 2.15rem !important;
+    font-size: 1.05rem !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 def card_value_baccarat(card: str) -> int:
     """百家樂點數：A=1, 2-9=本身, 10/J/Q/K=0"""
     if card is None:
@@ -37,36 +48,36 @@ def flip_side(side: str) -> str:
     return "-"
 
 # =========================
-# ✅ 方案A：牌面按鈕鍵盤（手機不跳鍵盤）
+# ✅ 手機友善選牌：expander + 按鈕鍵盤
 # =========================
-def ensure_default(key: str, default: str | None):
+def card_picker(key: str, label: str, allow_none: bool = False):
+    # 初始化預設值（避免 KeyError）
     if key not in st.session_state:
-        st.session_state[key] = default
-
-def card_picker(key: str, title: str, allow_none: bool = False):
-    """
-    用按鈕選牌，不會跳手機鍵盤。
-    allow_none=True => 會多一顆 None（無補牌）按鈕
-    """
-    st.caption(title)
+        st.session_state[key] = "A" if not allow_none else None
 
     cur = st.session_state.get(key, None)
     cur_show = "None" if cur is None else cur
-    st.write(f"目前：**{cur_show}**")
 
-    rows = [
-        ["A","2","3","4","5","6"],
-        ["7","8","9","10","J","Q","K"],
-    ]
-    for r in rows:
-        cols = st.columns(len(r))
-        for i, c in enumerate(r):
-            if cols[i].button(c, key=f"{key}__btn__{c}", use_container_width=True):
+    # 收合狀態只顯示目前選到的值；點開才看到鍵盤
+    with st.expander(f"{label}（目前：{cur_show}）", expanded=False):
+        row1 = ["A","2","3","4","5","6"]
+        row2 = ["7","8","9","10","J","Q","K"]
+
+        cols = st.columns(len(row1))
+        for i, c in enumerate(row1):
+            if cols[i].button(c, key=f"{key}__btn__{c}"):
                 st.session_state[key] = c
 
-    if allow_none:
-        if st.button("None（無補牌）", key=f"{key}__btn__None", use_container_width=True):
-            st.session_state[key] = None
+        cols = st.columns(len(row2))
+        for i, c in enumerate(row2):
+            if cols[i].button(c, key=f"{key}__btn__{c}"):
+                st.session_state[key] = c
+
+        if allow_none:
+            if st.button("None（無補牌）", key=f"{key}__btn__None"):
+                st.session_state[key] = None
+
+    return st.session_state.get(key, None)
 
 # =========================
 # 方法1：跑牌值A（含翻邊規則）
@@ -88,7 +99,7 @@ def method1_run_value(p_cards, b_cards, p_total, b_total):
     first4 = [p_cards[0], p_cards[1], b_cards[0], b_cards[1]]
     no_face_first4 = all((c not in FACE_CARDS) for c in first4 if c is not None)
 
-    is_natural = (not has_draw) and ((p_total in [8,9]) or (b_total in [8,9]))
+    is_natural = (not has_draw) and ( (p_total in [8,9]) or (b_total in [8,9]) )
 
     flip_flag = False
     reason = []
@@ -131,7 +142,7 @@ def method2_matrix(p_cards, b_cards, p_total, b_total):
     return pred, info
 
 # =========================
-# 方法3：計數公式（只算本局，不累加上局）
+# 方法3：計數公式（只算本局）
 # =========================
 COUNT_W = {
     "A": 1, "2": 1, "3": 1,
@@ -222,43 +233,21 @@ tab1, tab2 = st.tabs(["🧮 算牌介面", "📝 歷史紀錄 / 勝率統計"])
 with tab1:
     st.title("🧮算牌工具（下局預測 / 不套房態）")
 
-    # ✅ 先給必要欄位預設值（避免 None）
-    ensure_default("P1", "A")
-    ensure_default("P2", "A")
-    ensure_default("P3", None)
-    ensure_default("B1", "A")
-    ensure_default("B2", "A")
-    ensure_default("B3", None)
-
     colL, colR = st.columns(2)
 
     with colL:
         st.subheader("輸入本局牌局（閒 P）")
-        card_picker("P1", "P1", allow_none=False)
-        card_picker("P2", "P2", allow_none=False)
-        card_picker("P3", "P3（無補牌選 None）", allow_none=True)
+        P1 = card_picker("P1", "P1")
+        P2 = card_picker("P2", "P2")
+        P3 = card_picker("P3", "P3（無補牌選 None）", allow_none=True)
 
     with colR:
         st.subheader("輸入本局牌局（莊 B）")
-        card_picker("B1", "B1", allow_none=False)
-        card_picker("B2", "B2", allow_none=False)
-        card_picker("B3", "B3（無補牌選 None）", allow_none=True)
+        B1 = card_picker("B1", "B1")
+        B2 = card_picker("B2", "B2")
+        B3 = card_picker("B3", "B3（無補牌選 None）", allow_none=True)
 
-    P1 = st.session_state["P1"]
-    P2 = st.session_state["P2"]
-    P3 = st.session_state["P3"]
-    B1 = st.session_state["B1"]
-    B2 = st.session_state["B2"]
-    B3 = st.session_state["B3"]
-
-    p_cards = [P1, P2, P3]
-    b_cards = [B1, B2, B3]
-
-    p_total = hand_total(p_cards)
-    b_total = hand_total(b_cards)
-    auto_actual = compute_actual(p_total, b_total)
-
-    # ✅ 按鍵放在「輸入下面」
+    # ✅ 按鍵放在「輸入下面」：更快記錄
     st.markdown("---")
     colA, colB, colC = st.columns([1,1,2])
     with colA:
@@ -272,7 +261,12 @@ with tab1:
         st.session_state.records = st.session_state.records.iloc[0:0].copy()
         st.success("已清空全部紀錄。")
 
-    st.markdown("---")
+    p_cards = [P1, P2, P3]
+    b_cards = [B1, B2, B3]
+    p_total = hand_total(p_cards)
+    b_total = hand_total(b_cards)
+    auto_actual = compute_actual(p_total, b_total)
+
     st.header("本局點數")
     st.write(f"閒點數：**{p_total}**   |   莊點數：**{b_total}**   |   本局結果：**{auto_actual}**")
 
@@ -284,7 +278,7 @@ with tab1:
     )
     actual = auto_actual if actual_choice == "自動判定" else actual_choice
 
-    # ====== 三方法計算（下局預測）======
+    # 三方法計算
     m1_pred, m1_info = method1_run_value(p_cards, b_cards, p_total, b_total)
     m2_pred, m2_info = method2_matrix(p_cards, b_cards, p_total, b_total)
     m3_pred, m3_info = method3_count(p_cards, b_cards)
@@ -309,24 +303,31 @@ with tab1:
         f" | 最終預測=**{m3_pred if m3_pred!='-' else '觀望'}**"
     )
 
-    # 一致性提示框（保留）
+    # 一致性提示框
     consensus_123 = (m1_pred in ["莊","閒"]) and (m1_pred == m2_pred == m3_pred)
     consensus_12  = (m1_pred in ["莊","閒"]) and (m1_pred == m2_pred) and (m3_pred != m1_pred)
     consensus_13  = (m1_pred in ["莊","閒"]) and (m1_pred == m3_pred) and (m2_pred != m1_pred)
     consensus_23  = (m2_pred in ["莊","閒"]) and (m2_pred == m3_pred) and (m1_pred != m2_pred)
 
-    if consensus_123:
-        st.success(f"✅ 三方法一致：**{m1_pred}**")
-    elif consensus_12:
-        st.info(f"ℹ️ 方法1 & 方法2 一致：**{m1_pred}**（方法3不同）")
-    elif consensus_13:
-        st.info(f"ℹ️ 方法1 & 方法3 一致：**{m1_pred}**（方法2不同）")
-    elif consensus_23:
-        st.info(f"ℹ️ 方法2 & 方法3 一致：**{m2_pred}**（方法1不同）")
+    if actual == "和":
+        st.warning("本局開『和』：觀望（不下注）")
+        st.write("上局預測（供你回看）：")
+        st.write(f"- 方法1（跑牌值A）：{m1_pred if m1_pred!='-' else '觀望'}")
+        st.write(f"- 方法2（矩陣算牌）：{m2_pred if m2_pred!='-' else '觀望'}")
+        st.write(f"- 方法3（計數公式）：{m3_pred if m3_pred!='-' else '觀望'}")
     else:
-        st.warning("⚠️ 尚未一致")
+        if consensus_123:
+            st.success(f"✅ 三方法一致：**{m1_pred}**")
+        elif consensus_12:
+            st.info(f"ℹ️ 方法1 & 方法2 一致：**{m1_pred}**（方法3不同）")
+        elif consensus_13:
+            st.info(f"ℹ️ 方法1 & 方法3 一致：**{m1_pred}**（方法2不同）")
+        elif consensus_23:
+            st.info(f"ℹ️ 方法2 & 方法3 一致：**{m2_pred}**（方法1不同）")
+        else:
+            st.warning("⚠️ 尚未一致")
 
-    # ====== ⭐ 高勝率建議下注（勝率>50%才顯示）======
+    # ⭐ 高勝率建議下注：勝率>50才顯示；多個方法就比對同向/分歧
     st.markdown("---")
     st.subheader("⭐ 高勝率建議下注（勝率 > 50% 才顯示）")
 
@@ -351,19 +352,28 @@ with tab1:
         if not items:
             st.write("目前沒有任何方法的歷史命中率 > 50%，所以先不顯示下注建議。")
         else:
-            for name, wr, sug in sorted(items, key=lambda x: x[1], reverse=True):
+            items_sorted = sorted(items, key=lambda x: x[1], reverse=True)
+            for name, wr, sug in items_sorted:
                 st.write(f"- **{name}**｜勝率 **{wr*100:.1f}%**｜本局建議：**{sug}**")
 
+            # ✅ 同向/分歧只針對「高勝率框」判斷
+            sug_list = [x[2] for x in items_sorted if x[2] in ["莊","閒"]]
+            if len(sug_list) >= 2:
+                if len(set(sug_list)) == 1:
+                    st.success(f"同向：建議 **{sug_list[0]}**")
+                else:
+                    st.warning("分歧：先觀望")
+            # 和局優先：直接觀望
             if actual == "和":
                 st.warning("本局結果為『和』：建議先觀望，不下注。")
 
-    # ====== 加入紀錄（按鍵在上面已經放了，這裡處理動作）======
+    # ====== 加入紀錄（真的寫入） ======
     if add_btn:
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         new_row = {
             "ts": ts,
-            "P1": P1, "P2": P2, "P3": (P3 if P3 is not None else "None"),
-            "B1": B1, "B2": B2, "B3": (B3 if B3 is not None else "None"),
+            "P1": P1, "P2": P2, "P3": ("None" if P3 is None else P3),
+            "B1": B1, "B2": B2, "B3": ("None" if B3 is None else B3),
             "P_total": p_total, "B_total": b_total, "actual": actual,
             "m1_pred": m1_pred, "m2_pred": m2_pred, "m3_pred": m3_pred,
             "m1_run": m1_info["run_value"],
@@ -384,56 +394,17 @@ with tab1:
 # =========================
 with tab2:
     st.title("📝 歷史紀錄 / 勝率統計")
+
     df = st.session_state.records.copy()
 
-    # 匯出（保留下載）
-    col1, col2 = st.columns([1.2, 2])
-    with col1:
-        csv_bytes = df.to_csv(index=False).encode("utf-8-sig")
-        st.download_button(
-            "⬇️ 下載 CSV",
-            data=csv_bytes,
-            file_name="baccarat_records.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-    with col2:
-        st.caption("⚠️ Streamlit 重新啟動可能會清空記憶體紀錄，建議每次玩完都下載 CSV 保存。")
-
-    st.markdown("---")
-
-    # 刪除功能（留在歷史頁）
-    colD1, colD2, colD3 = st.columns([1,1,2])
-    with colD1:
-        if st.button("🧹 刪除最後一筆", use_container_width=True) and not df.empty:
-            st.session_state.records = df.iloc[:-1].copy()
-            st.success("已刪除最後一筆。")
-    with colD2:
-        del_idx = st.number_input("刪除指定 index", min_value=0, value=0, step=1)
-        if st.button("❌ 刪除此 index", use_container_width=True):
-            if df.empty:
-                st.warning("目前沒有紀錄。")
-            elif del_idx >= len(df):
-                st.warning("index 超出範圍。")
-            else:
-                st.session_state.records = df.drop(index=int(del_idx)).reset_index(drop=True)
-                st.success(f"已刪除 index={int(del_idx)}。")
-    with colD3:
-        st.caption("需要大量修改時，建議下載 CSV 後在外部編修。")
-
-    st.markdown("---")
-
-    # 統計總覽
-    df = st.session_state.records.copy()
     if df.empty:
         st.info("目前沒有任何歷史紀錄。")
     else:
+        st.subheader("累積統計（所有已記錄牌局）")
         total_n = len(df)
         pwin = int((df["actual"] == "閒贏").sum())
         bwin = int((df["actual"] == "莊贏").sum())
         tie = int((df["actual"] == "和").sum())
-
-        st.subheader("累積統計（所有已記錄牌局）")
         st.write(f"總局數：**{total_n}**  |  閒贏：**{pwin}**  |  莊贏：**{bwin}**  |  和：**{tie}**")
 
         s1 = calc_method_stats(df, "m1_pred")
@@ -458,3 +429,14 @@ with tab2:
         st.markdown("---")
         st.subheader("所有紀錄（可檢視）")
         st.dataframe(df, use_container_width=True)
+
+    st.markdown("---")
+    st.subheader("下載 CSV（保存你的紀錄）")
+    csv_bytes = df.to_csv(index=False).encode("utf-8-sig")
+    st.download_button(
+        "⬇️ 下載 CSV",
+        data=csv_bytes,
+        file_name="baccarat_records.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
