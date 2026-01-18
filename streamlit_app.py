@@ -47,7 +47,7 @@ def compute_actual(p_total, b_total) -> str:
     return "和"
 
 # =========================
-# 方法1：跑牌值A（含翻邊規則）
+# 方法1：跑牌值（含翻邊規則）
 # =========================
 def method1_run_value(p_cards, b_cards, p_total, b_total):
     run_value = p_total + b_total
@@ -229,7 +229,7 @@ tab1, tab2 = st.tabs(["🧮 算牌介面", "📝 歷史紀錄 / 勝率統計"])
 # Tab 1：算牌介面
 # =========================
 with tab1:
-    st.title("🧮算牌工具（下局預測 / 不套房態）")
+    st.title("🧮算牌工具（下局預測）")
 
     # ✅ 預設值
     ensure_default("P1", "A")
@@ -299,10 +299,10 @@ with tab1:
     m3_pred, m3_info = method3_count(p_cards, b_cards)
 
     st.markdown("---")
-    st.header("🎯 下局預測（由本局牌計算，不套房態）")
+    st.header("🎯 下局預測（由本局牌計算）")
 
     st.write(
-        f"方法1（跑牌值A）：跑牌值=**{m1_info['run_value']}**（閒{p_total}+莊{b_total}）"
+        f"方法1（跑牌值）：跑牌值=**{m1_info['run_value']}**（閒{p_total}+莊{b_total}）"
         f" | 原始=**{m1_info['base']}**"
         f" | 翻邊=**{'是' if m1_info['flip'] else '否'}**（{m1_info['flip_reason']}）"
         f" | 最終預測=**{m1_pred if m1_pred!='-' else '觀望'}**"
@@ -349,7 +349,7 @@ with tab1:
 
         items = []
         for name, stat, pred_now in [
-            ("方法1（跑牌值A）", s1, m1_pred),
+            ("方法1（跑牌值）", s1, m1_pred),
             ("方法2（矩陣算牌）", s2, m2_pred),
             ("方法3（計數公式）", s3, m3_pred),
         ]:
@@ -426,7 +426,7 @@ with tab2:
                     st.metric("最高連贏", stat["max_win"])
                     st.metric("最高連輸", stat["max_loss"])
 
-            show_method_card(c1, "方法1（跑牌值A）", s1)
+            show_method_card(c1, "方法1（跑牌值）", s1)
             show_method_card(c2, "方法2（矩陣算牌）", s2)
             show_method_card(c3, "方法3（計數公式）", s3)
 
