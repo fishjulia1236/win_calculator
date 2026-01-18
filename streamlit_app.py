@@ -10,6 +10,19 @@ st.set_page_config(page_title="算牌計算器", layout="wide")
 CARDS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
 FACE_CARDS = {"10","J","Q","K"}
 
+st.markdown("""
+<style>
+/* 大標題 st.title */
+h1 { font-size: 26px !important; }
+
+/* 副標題 st.header */
+h2 { font-size: 28px !important; }
+
+/* 小標題 st.subheader */
+h3 { font-size: 20px !important; }
+</style>
+""", unsafe_allow_html=True)
+
 # =========================
 # 核心計算
 # =========================
